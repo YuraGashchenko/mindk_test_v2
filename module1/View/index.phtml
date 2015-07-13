@@ -1,0 +1,249 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Mindk test</title>
+<link href="/templatemo_style.css" rel="stylesheet" type="text/css" />
+<link href="/ui/jquery-ui.css" rel="stylesheet" type="text/css" />
+<script language="javascript" type="text/javascript" src="/js/jquery-1.11.3.min.js"></script>
+<script language="javascript" type="text/javascript" src="/js/jquery-ui.min.js"></script>
+<script language="javascript" type="text/javascript">
+
+// send an ajax query to server to remove
+// proper record in the database
+// after success remove appropriate table row
+function deleteStudent(student_id) {
+    $.post('/module1/student/delete', {'student_id' : student_id})
+        .done(function(data) {
+                if (data == 'done') {
+                    $('#student_' + student_id).remove();
+                } else {
+                    $('#error').dialog({autoopen : true});
+                }
+            });
+}
+
+$(function() {
+    $('#error').dialog({autoOpen : false});
+})
+
+// fill edit student form with
+// current values of students_tbl row associated
+// to choosen student and show the dialog
+//
+// then ajax form to server to save new data
+// param student_id - id of student which will be edit
+function editStudent(student_id) {
+    //fill form
+    <?php
+        foreach( $this->hidden_fields['student_desc'] as $row ) {
+            if ($row['Field'] != 'id') {
+                echo '$("input[name=' . $row['Field'] . ']")'
+                    . '.val($("#' . $row['Field'] . '_" + student_id).html());' . PHP_EOL;
+            }
+        }
+    ?>
+
+    // delete all event handlers
+    $('#student_form').unbind('submit');
+
+    // send data on submit
+    $('#student_form').submit(function(){
+        $.post(
+                '/module1/student/edit',
+                $(this).serialize() + '&id=' + student_id
+        ).done(function(data) {
+                    if (data != 'done') {
+                        $('#error').dialog({autoOpen: true});
+                        return false;
+                    }
+
+                    //fill a table editable row on a page
+                    var formArray = $('#student_form').serializeArray();
+                    $.each(formArray, function(i, field){
+                            $('#' + field.name + '_' + student_id).html(field.value);
+                        })
+                });
+        return false;
+        });
+
+    $("#student_div").dialog({autoOpen: true});
+    return false;
+}
+
+// Clear student_form form.
+// Then ajax this form to server to save it.
+function addStudent() {
+    $("#student_form input[type='reset']").click();
+
+    // delete all event handlers
+    $('#student_form').unbind('submit');
+
+    $('#student_form').submit(function() {
+            $.post(
+                    '/module1/student/add',
+                    $(this).serialize()
+            ).done(function(data){
+                        var id_str = data;
+                        if (!parseInt(id_str)){
+                            $('#error').dialog({autoOpen: true});
+                            return false;
+                        }
+
+                        //create a new table row
+                        var form_array = $('#student_form').serializeArray();
+                        var tbl_row = '<tr id=student_' + id_str + '>';
+                        $.each(form_array, function(i, field){
+                            tbl_row += '<td id=' + field.name + '_' + id_str + '>'
+                                + field.value + '</td>';
+                        })
+
+                        //edit student table element
+                        tbl_row += '<td><a class="edit_' + id_str
+                                + '"onclick="editStudent(' + id_str
+                                + '); return false;" href="#"><img alt=""'
+                                + 'title="Редактировать" src="/images/edit.jpg" width="30" height="30">'
+                                + '</img></a></td>';
+
+                        //delete student table element
+                        tbl_row += '<td><a class="delete_' + id_str
+                                + '"onclick="deleteStudent(' + id_str
+                                + '); return false;" href="#"><img alt=""title="Удалить"'
+                                + ' src="/images/delete.png" width="30" height="30">'
+                                + '</img></a></td>';
+                        tbl_row += '</tr>';
+
+                        $('#student_tbl tbody').append(tbl_row);
+                   }
+               );
+            return false;
+        });
+    $("#student_div").dialog({autoOpen: true});
+    return false;
+}
+
+$(function(){
+    $('#student_div').dialog({autoOpen: false});
+})
+
+</script>
+</head>
+<body>
+    <div class="templatemo_container">
+        <div id="templatemo_header">
+            <div id="templatemo_logo_area">
+              <div id="templatemo_slogan">
+                    Mindk test
+              </div>
+                <div class="cleaner"></div>
+            </div>
+            <div id="templatemo_menu">
+                <ul>
+                    <li><a href="#">Home</a></li>
+                    <li class="current"><a href="#">Gallery</a></li>
+                    <li><a href="#">Archives</a></li>
+                    <li><a href="#">Wallpapers</a></li>                        
+                    <li><a href="#">Downloads</a></li>
+                    <li><a href="http://www.Ftemplate.ru" target="_parent">Templates</a></li>    
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+        </div><!-- end of header -->
+
+        <div id="templatemo_content_area">
+            <div id="templatemo_left">
+                <?php 
+                    if (isset($this->error)) {
+                        echo '<div class="error">';
+                           echo '<h1>' . $this->error . '</h1>';
+                        echo '</div>';
+                    }
+                ?>
+                <div class="templatemo_post">
+                    <table border="1" id="student_tbl">
+                    <?php
+                        echo '<thead>' . PHP_EOL;
+                        foreach ($this->hidden_fields['student_desc'] as $row) {
+                            if ($row['Field'] != 'id') {
+                                echo '<td>' . $row['Field'] . '</td>' . PHP_EOL;
+                            }
+                        }
+                        echo '</thead>' . PHP_EOL;
+                        echo '<tbody>' . PHP_EOL;
+
+                        foreach ($this->hidden_fields['students'] as $row) {
+                            echo '<tr id=student_' . $row['id'] . '>' . PHP_EOL;
+                            $id = $row['id'];
+                            foreach ($row as $name => $value) {
+                                if ($name != 'id') {
+                                    echo '<td id='. $name. '_' . $id . ">$value</td>" . PHP_EOL;
+                                }
+                            }
+
+                            //edit student table element
+                            echo '<td><a class="edit_' . $row['id'] . '"
+                                    onclick="editStudent(' . $row['id'] . '); return false;" href="#"><img alt=""
+                                    title="Редактировать" src="/images/edit.jpg" width="30" height="30">
+                                    </img></a></td>' . PHP_EOL;
+
+                            //delete student table element
+                            echo '<td><a class="delete_' . $row['id'] . '"
+                                    onclick="deleteStudent(' . $row['id'] . '); return false;" href="#"><img alt=""
+                                    title="Удалить" src="/images/delete.png" width="30" height="30">
+                                    </img></a></td>' . PHP_EOL;
+                            echo '</tr>' . PHP_EOL;
+                        }
+                        echo '</tbody>' . PHP_EOL;
+                    ?>
+                    </table>
+              </div>
+            </div><!-- End Of left-->
+
+            <div id="templatemo_right">                    
+                <div class="templatemo_section">
+                    <div class="templatemo_section_title">
+                        Actions
+                    </div>
+                    <div class="templatemo_section_bottom">
+                   <ul class="templatemo_list">
+                            <li><a href="#" onclick="addStudent(); return false;">Add student.</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div><!-- End Of right-->
+            
+            <div class="cleaner"></div>
+        
+        </div><!-- End Of Content area -->
+    </div><!-- End Of Container -->
+    
+    <div id="templatemo_bottom_area">
+        <div class="templatemo_container">
+
+            <div class="cleaner"></div>
+
+            <div id="templatemo_footer">
+                  Copyright © 2015 <a href="#">Mindk test</a>
+            </div>
+
+            <div id="student_div" title="Student form">
+                <form id="student_form" action="" method="post">
+                <?php
+                    foreach($this->hidden_fields['student_desc'] as $row) {
+                        if ($row['Field'] != 'id') {
+                            echo '<input type="text" name="' . $row['Field'] . '">' . $row['Field'] . '<br/>' . PHP_EOL;
+                        }
+                    }
+                ?>
+                <input type="submit" value="submit"/>
+                <input type="reset" value="reset"/>
+                </form>
+            </div>
+            <div id="error">
+                <img alt="error_image" src="/images/error.jpg" width="30" height="30"> </img><br/>
+                Error occured while trying to perforn the operation.
+            </div>
+        </div>
+    </div>
+</body>
+</html>
